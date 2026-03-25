@@ -39,11 +39,9 @@ def init_db():
 
 init_db()
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/dispatch', methods=['POST'])
 def dispatch():
@@ -125,12 +123,6 @@ def boxes():
             })
 
     return jsonify({"boxes": result})
-
-
-
-
-                  
-
 
 if __name__ == '__main__':
     app.run(debug=True)
