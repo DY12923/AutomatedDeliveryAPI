@@ -1,0 +1,171 @@
+:root {
+    --primary: #007bff;
+    --success: #28a745;
+    --danger: #dc3545;
+    --gray-dark: #343a40;
+    --gray-light: #f8f9fa;
+    --white: #ffffff;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    color: var(--gray-dark);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 900px;
+    width: 90%;
+    margin-top: 50px;
+    background: var(--white);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+h1 {
+    font-size: 2rem;
+    color: var(--primary);
+    margin: 0;
+}
+
+.section {
+    margin-bottom: 40px;
+}
+
+h2 {
+    font-size: 1.25rem;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--gray-light);
+    padding-bottom: 10px;
+}
+
+/* Boxes Grid */
+.boxes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.box-card {
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background-color: var(--gray-light);
+    border: 1px solid #e1e4e8;
+}
+
+.box-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.box-card.available {
+    border-top: 5px solid var(--success);
+}
+
+.box-card.occupied {
+    border-top: 5px solid var(--danger);
+}
+
+.box-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.box-status {
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.student-id {
+    display: block;
+    margin-top: 10px;
+    font-style: italic;
+    color: #666;
+}
+
+/* Form Styles */
+.dispatch-form {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.input-group {
+    flex: 1;
+    min-width: 250px;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus {
+    border-color: var(--primary);
+}
+
+button {
+    background-color: var(--primary);
+    color: var(--white);
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#dispatch-message {
+    margin-top: 15px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    display: none;
+}
+
+#dispatch-message.success {
+    display: block;
+    background-color: #d4edda;
+    color: #155724;
+}
+
+#dispatch-message.error {
+    display: block;
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Loading state */
+.loading {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+}
