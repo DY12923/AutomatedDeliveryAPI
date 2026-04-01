@@ -4,6 +4,8 @@
 #include <ArduinoJson.h>
 #include "esp_wpa2.h"
 #include <ESP32Servo.h>
+#include <SPI.h>
+#include <MFRC522.h>
 
 const char* ssid = "uwosecure-v2";
 const char* username = "dyau23@uwo.ca";
@@ -20,8 +22,18 @@ const int SERVO2_PIN = 14;
 const int SERVO3_PIN = 15;
 const int SERVO4_PIN = 25;
 
+const int RST_PIN = 22;
+const int SS_PIN = 21;
+MFRC522 rfid(SS_PIN, RST_PIN);
+
+const int GREEN_LED = 26;
+const int RED_LED = 27;
+
 void setup() {
     Serial.begin(115200);
+
+    pinMode(GREEN_LED, OUTPUT);
+    pinMode(RED_LED, OUTPUT);
     
     WiFi.disconnect(true);
     WiFi.mode(WIFI_STA);
@@ -53,6 +65,28 @@ void setup() {
     servo2.attach(SERVO2_PIN);
     servo3.attach(SERVO3_PIN);
     servo4.attach(SERVO4_PIN);
+
+    SPI.begin(18, 19, 13, 21);
+    rfid.PCD_Init();
+    Serial.println("RFID ready - scan a card!");
+}
+
+String readRFID() {
+    if (!rfid.PICC_IsNewCardPresent()) return "";
+    if (!rfid.PICC_ReadCardSerial()) return "";
+    
+    String uid = "";
+    for (byte i = 0; i < rfid.uid.size; i++) {
+        if (rfid.uid.uidByte[i] < 0x10) uid += "0";
+        uid += String(rfid.uid.uidByte[i], HEX);
+    }
+    
+    rfid.PICC_HaltA();
+    rfid.PCD_StopCrypto1();
+    
+    uid.toUpperCase();
+    Serial.println("Card scanned: " + uid);
+    return uid;
 }
 
 int callPending(String student_id) {
@@ -126,18 +160,29 @@ void openBox(int box_number) {
 
 void loop() {
     if (WiFi.status() == WL_CONNECTED) {
-        String student_id = "STU001";
+        String uid = readRFID();
         
-        int box_number = callPending(student_id);
-        
-        if (box_number > 0) {
-            bool claimed = callClaim(student_id, box_number);
-            if (claimed) {
-                openBox(box_number);
+        if (uid != "") {
+            int box_number = callPending(uid);
+            
+            if (box_number > 0) {
+                bool claimed = callClaim(uid, box_number);
+                if (claimed) {
+                    digitalWrite(GREEN_LED, HIGH);
+                    openBox(box_number);
+                    digitalWrite(GREEN_LED, LOW);
+                } else {
+                    digitalWrite(RED_LED, HIGH);
+                    delay(2000);
+                    digitalWrite(RED_LED, LOW);
+                }
+            } else {
+                Serial.println("No delivery found for this card");
+                digitalWrite(RED_LED, HIGH);
+                delay(2000);
+                digitalWrite(RED_LED, LOW);
             }
-        } else {
-            Serial.println("No pending delivery");
         }
     }
-    delay(5000);
+    delay(500);
 }

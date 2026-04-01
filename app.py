@@ -46,6 +46,8 @@ def index():
 @app.route('/dispatch', methods=['POST'])
 def dispatch():
     data = request.get_json()
+    if not data or 'student_id' not in data:
+        return jsonify({"error": "Missing student_id"}), 400
     student_id = data['student_id']
     
     conn, c = get_db()
@@ -88,17 +90,22 @@ def pending():
 @app.route('/claim', methods=['POST'])
 def claim():
     data = request.get_json()
+    if not data or 'student_id' not in data or 'box_number' not in data:
+        return jsonify({"error": "Missing student_id or box_number"}), 400
     student_id = data['student_id']
     box_number = data['box_number']
-    
+
     conn, c = get_db()
-    
+
     c.execute("UPDATE deliveries SET status = 'claimed' WHERE student_id = ? AND box_number = ? AND status = 'pending'", (student_id, box_number))
+    if c.rowcount == 0:
+        conn.close()
+        return jsonify({"error": "No pending delivery found for this student and box"}), 404
     c.execute("UPDATE boxes SET status = 'available' WHERE box_number = ?", (box_number,))
-    
+
     conn.commit()
     conn.close()
-    
+
     return jsonify({"message": "Delivery claimed", "student_id": student_id, "box_number": box_number})
 
 @app.route('/boxes', methods=['GET'])
@@ -125,4 +132,4 @@ def boxes():
     return jsonify({"boxes": result})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
