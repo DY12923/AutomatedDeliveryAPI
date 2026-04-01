@@ -9,8 +9,8 @@
 
 const char* ssid = "uwosecure-v2";
 const char* username = "dyau23@uwo.ca";
-const char* password = "YOUR_PASSWORD";
-const char* apiBase = "http://YOUR_LAPTOP_IP:5000";
+const char* password = "Darren02232007!";
+const char* apiBase = "http://172.30.54.75:5000";
 
 Servo servo1;
 Servo servo2;
