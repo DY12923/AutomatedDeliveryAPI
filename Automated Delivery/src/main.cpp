@@ -1,10 +1,24 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include "esp_wpa2.h"
+#include <ESP32Servo.h>
 
 const char* ssid = "uwosecure-v2";
-const char* username = "dyau23";
-const char* password = "Darern02232007!";
+const char* username = "dyau23@uwo.ca";
+const char* password = "YOUR_PASSWORD";
+const char* apiBase = "http://YOUR_LAPTOP_IP:5000";
+
+Servo servo1;
+Servo servo2;
+Servo servo3;
+Servo servo4;
+
+const int SERVO1_PIN = 13;
+const int SERVO2_PIN = 14;
+const int SERVO3_PIN = 15;
+const int SERVO4_PIN = 25;
 
 void setup() {
     Serial.begin(115200);
@@ -20,21 +34,110 @@ void setup() {
     WiFi.begin(ssid);
     
     Serial.println("Connecting to WiFi...");
-    while (WiFi.status() != WL_CONNECTED) {
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 40) {
         delay(500);
         Serial.print(".");
+        attempts++;
+    }
+
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("\nWiFi failed! Restarting...");
+        ESP.restart();
     }
     
-    Serial.println("");
     Serial.println("WiFi connected!");
     Serial.println(WiFi.localIP());
+
+    servo1.attach(SERVO1_PIN);
+    servo2.attach(SERVO2_PIN);
+    servo3.attach(SERVO3_PIN);
+    servo4.attach(SERVO4_PIN);
 }
 
-void callPending(String student_id){
+int callPending(String student_id) {
+    HTTPClient http;
+    String url = String(apiBase) + "/pending?student_id=" + student_id;
+    
+    http.begin(url);
+    int httpCode = http.GET();
+    
+    if (httpCode == 200) {
+        String payload = http.getString();
+        Serial.println("Response: " + payload);
+        
+        StaticJsonDocument<512> doc;
+        DeserializationError error = deserializeJson(doc, payload);
 
+        if (error) {
+            Serial.println("JSON parse failed!");
+            http.end();
+            return 0;
+        }
+        
+        int box_number = doc["box_number"];
+        http.end();
+        return box_number;
+    }
+    
+    http.end();
+    return 0;
+}
 
-  
+bool callClaim(String student_id, int box_number) {
+    HTTPClient http;
+    String url = String(apiBase) + "/claim";
+    
+    http.begin(url);
+    http.addHeader("Content-Type", "application/json");
+    
+    String body = "{\"student_id\":\"" + student_id + "\",\"box_number\":" + box_number + "}";
+    int httpCode = http.POST(body);
+    http.end();
+
+    if (httpCode == 200) {
+        Serial.println("Claimed box " + String(box_number) + " for " + student_id);
+        return true;
+    }
+
+    Serial.println("Claim failed! HTTP code: " + String(httpCode));
+    return false;
+}
+
+void openBox(int box_number) {
+    Servo* target = nullptr;
+    
+    if (box_number == 1) target = &servo1;
+    if (box_number == 2) target = &servo2;
+    if (box_number == 3) target = &servo3;
+    if (box_number == 4) target = &servo4;
+    
+    if (target == nullptr) {
+        Serial.println("Invalid box number!");
+        return;
+    }
+    
+    Serial.println("Opening box " + String(box_number));
+    target->write(90);
+    delay(5000);
+    target->write(0);
+    Serial.println("Box " + String(box_number) + " closed");
 }
 
 void loop() {
+    if (WiFi.status() == WL_CONNECTED) {
+        String student_id = "STU001";
+        
+        int box_number = callPending(student_id);
+        
+        if (box_number > 0) {
+            bool claimed = callClaim(student_id, box_number);
+            if (claimed) {
+                openBox(box_number);
+            }
+        } else {
+            Serial.println("No pending delivery");
+        }
+    }
+    delay(5000);
 }
