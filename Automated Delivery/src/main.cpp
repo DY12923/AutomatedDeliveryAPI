@@ -17,15 +17,15 @@ Servo servo2;
 Servo servo3;
 Servo servo4;
 
-const int SERVO1_PIN = 13;
-const int SERVO2_PIN = 14;
+const int SERVO1_PIN = 14;
+const int SERVO2_PIN = 32;
 const int SERVO3_PIN = 15;
 const int SERVO4_PIN = 25;
 
 const int RST_PIN = 22;
 const int SS_PIN = 21;
 MFRC522 rfid(SS_PIN, RST_PIN);
-
+ 
 const int GREEN_LED = 26;
 const int RED_LED = 27;
 
@@ -158,30 +158,103 @@ void openBox(int box_number) {
     Serial.println("Box " + String(box_number) + " closed");
 }
 
+void checkRegistration() {
+    HTTPClient http;
+    String url = String(apiBase) + "/register/pending";
+    
+    http.begin(url);
+    int httpCode = http.GET();
+    
+    if (httpCode == 200) {
+        String payload = http.getString();
+        StaticJsonDocument<512> doc;
+        DeserializationError error = deserializeJson(doc, payload);
+        
+        if (error) { http.end(); return; }
+        
+        const char* student_id = doc["student_id"];
+        const char* name = doc["name"];
+        
+        if (student_id == nullptr) { http.end(); return; }
+        
+        http.end();
+        
+        Serial.println("Registration pending for: " + String(student_id));
+        Serial.println("Waiting for card scan...");
+        
+        String uid = readRFID();
+        if (uid == "") return;
+        
+        HTTPClient http2;
+        http2.begin(String(apiBase) + "/register");
+        http2.addHeader("Content-Type", "application/json");
+        
+        String body = "{\"uid\":\"" + uid + "\",\"student_id\":\"" + String(student_id) + "\",\"name\":\"" + String(name) + "\"}";
+        int code = http2.POST(body);
+        http2.end();
+        
+        if (code == 200) {
+            Serial.println("Registration successful!");
+            digitalWrite(GREEN_LED, HIGH);
+            delay(2000);
+            digitalWrite(GREEN_LED, LOW);
+        } else {
+            Serial.println("Registration failed!");
+            digitalWrite(RED_LED, HIGH);
+            delay(2000);
+            digitalWrite(RED_LED, LOW);
+        }
+    }
+    http.end();
+}
+
 void loop() {
     if (WiFi.status() == WL_CONNECTED) {
+        checkRegistration();
+        
         String uid = readRFID();
         
         if (uid != "") {
-            int box_number = callPending(uid);
+            HTTPClient http;
+            String url = String(apiBase) + "/lookup?uid=" + uid;
+            http.begin(url);
+            int httpCode = http.GET();
             
-            if (box_number > 0) {
-                bool claimed = callClaim(uid, box_number);
-                if (claimed) {
-                    digitalWrite(GREEN_LED, HIGH);
-                    openBox(box_number);
-                    digitalWrite(GREEN_LED, LOW);
-                } else {
+            if (httpCode == 200) {
+                String payload = http.getString();
+                StaticJsonDocument<512> doc;
+                deserializeJson(doc, payload);
+                
+                const char* student_id = doc["student_id"];
+                
+                if (student_id == nullptr) {
+                    Serial.println("Card not registered!");
                     digitalWrite(RED_LED, HIGH);
                     delay(2000);
                     digitalWrite(RED_LED, LOW);
+                } else {
+                    int box_number = callPending(String(student_id));
+                    
+                    if (box_number > 0) {
+                        bool claimed = callClaim(String(student_id), box_number);
+                        if (claimed) {
+                            digitalWrite(GREEN_LED, HIGH);
+                            openBox(box_number);
+                            digitalWrite(GREEN_LED, LOW);
+                        } else {
+                            digitalWrite(RED_LED, HIGH);
+                            delay(2000);
+                            digitalWrite(RED_LED, LOW);
+                        }
+                    } else {
+                        Serial.println("No delivery found for this card");
+                        digitalWrite(RED_LED, HIGH);
+                        delay(2000);
+                        digitalWrite(RED_LED, LOW);
+                    }
                 }
-            } else {
-                Serial.println("No delivery found for this card");
-                digitalWrite(RED_LED, HIGH);
-                delay(2000);
-                digitalWrite(RED_LED, LOW);
             }
+            http.end();
         }
     }
     delay(500);
