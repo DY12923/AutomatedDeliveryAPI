@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Base document metadata for encoding and responsive layout. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automated Pharmacy Dashboard</title>
@@ -8,12 +9,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <!-- Main dashboard shell. -->
     <div class="container">
         <header>
             <h1>Automated Pharmacy Dashboard</h1>
         </header>
 
         <main>
+            <!-- Manual dispatch section for creating new deliveries. -->
             <section class="section">
                 <h2>Dispatch New Delivery</h2>
                 <div class="dispatch-form">
@@ -25,6 +28,7 @@
                 <div id="dispatch-message"></div>
             </section>
 
+            <!-- Real-time locker status cards rendered by dashboard.js. -->
             <section class="section">
                 <h2>Box Status</h2>
                 <div id="boxes-container">

@@ -1,4 +1,5 @@
 :root {
+    /* Shared color and elevation tokens for consistent styling. */
     --primary: #007bff;
     --success: #28a745;
     --danger: #dc3545;
@@ -21,6 +22,7 @@ body {
 }
 
 .container {
+    /* Centered card-style layout for dashboard content. */
     max-width: 900px;
     width: 90%;
     margin-top: 50px;
@@ -54,6 +56,7 @@ h2 {
 
 /* Boxes Grid */
 .boxes-grid {
+    /* Responsive card grid that wraps based on available width. */
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 20px;
@@ -74,10 +77,12 @@ h2 {
 }
 
 .box-card.available {
+    /* Green accent identifies an empty locker. */
     border-top: 5px solid var(--success);
 }
 
 .box-card.occupied {
+    /* Red accent identifies a locker with active delivery. */
     border-top: 5px solid var(--danger);
 }
 
@@ -103,6 +108,7 @@ h2 {
 
 /* Form Styles */
 .dispatch-form {
+    /* Flexible row layout that wraps on narrower screens. */
     display: flex;
     gap: 15px;
     flex-wrap: wrap;

@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Initial load
+    // Populate dashboard immediately when page finishes loading.
     loadBoxes();
     
-    // Set up auto-refresh
+    // Keep locker state fresh without manual refresh.
     setInterval(loadBoxes, 5000);
 
-    // Event listener for dispatch form
+    // Wire dispatch button to API submission logic.
     const dispatchButton = document.getElementById('dispatch-btn');
     if (dispatchButton) {
         dispatchButton.addEventListener('click', dispatchOrder);
@@ -19,6 +19,7 @@ async function loadBoxes() {
     const container = document.getElementById('boxes-container');
     
     try {
+        // Query current locker states from backend.
         const response = await fetch('/boxes');
         if (!response.ok) throw new Error('Failed to fetch boxes');
         
@@ -42,7 +43,7 @@ async function loadBoxes() {
  */
 function renderBoxes(boxes) {
     const container = document.getElementById('boxes-container');
-    container.innerHTML = ''; // Clear current content
+    container.innerHTML = ''; // Clear current cards before rerendering.
     
     const grid = document.createElement('div');
     grid.className = 'boxes-grid';
@@ -74,12 +75,13 @@ async function dispatchOrder() {
     const student_id = studentInput.value.trim();
 
     if (!student_id) {
+        // Client-side guard to avoid avoidable API requests.
         showMessage('Please enter a student ID!', 'error');
         return;
     }
 
     try {
-        // Disable button during request
+        // Disable button while request is in-flight to prevent duplicates.
         const btn = document.getElementById('dispatch-btn');
         btn.disabled = true;
         btn.textContent = 'Dispatching...';

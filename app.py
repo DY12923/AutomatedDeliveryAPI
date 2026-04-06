@@ -3,14 +3,17 @@ import sqlite3
 
 app = Flask(__name__)
 
+# Open a new SQLite connection and cursor for each request/operation.
 def get_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     return conn, c
 
+# Create required tables and seed lockers on first run.
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
+    # Physical locker boxes tracked by number and occupancy state.
     c.execute('''
         CREATE TABLE IF NOT EXISTS boxes(
         box_number INTEGER PRIMARY KEY,
@@ -18,12 +21,14 @@ def init_db():
         )
     ''')
 
+    # Seed four boxes when database is empty.
     c.execute("SELECT COUNT(*) FROM boxes")
     count, = c.fetchone()
     if count == 0:
         for i in range(1,5):
             c.execute("INSERT INTO boxes (box_number) VALUES (?)", (i,))
 
+    # Delivery records link students to lockers until claimed.
     c.execute('''
         CREATE TABLE IF NOT EXISTS deliveries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +40,7 @@ def init_db():
         )
     ''')
 
+    # RFID registration table maps a UID to a student profile.
     c.execute('''
         CREATE TABLE IF NOT EXISTS registrations (
             uid TEXT PRIMARY KEY,
@@ -49,14 +55,17 @@ def init_db():
 
 init_db()
 
+# Temporary in-memory registration payload waiting for card scan on ESP32.
 pending_registration = {"student_id": None, "name": None}
 
 @app.route('/')
 def index():
+    # Serve the dashboard page.
     return render_template('index.html')
 
 @app.route('/dispatch', methods=['POST'])
 def dispatch():
+    # Create a new pending delivery and assign the first free box.
     data = request.get_json()
     if not data or 'student_id' not in data:
         return jsonify({"error": "Missing student_id"}), 400
@@ -90,6 +99,7 @@ def dispatch():
 
 @app.route('/pending', methods=['GET'])
 def pending():
+    # Return pending delivery/box info for a student card lookup flow.
     student_id = request.args.get('student_id')
     
     if student_id is None:
@@ -108,6 +118,7 @@ def pending():
 
 @app.route('/claim', methods=['POST'])
 def claim():
+    # Mark delivery as claimed and free the locker.
     data = request.get_json()
     if not data or 'student_id' not in data or 'box_number' not in data:
         return jsonify({"error": "Missing student_id or box_number"}), 400
@@ -129,6 +140,7 @@ def claim():
 
 @app.route('/boxes', methods=['GET'])
 def boxes():
+    # Dashboard endpoint: show each box with any active pending delivery info.
     conn, c = get_db()
     c.execute('''
         SELECT boxes.box_number, boxes.status, deliveries.student_id, deliveries.name
@@ -153,6 +165,7 @@ def boxes():
 
 @app.route('/register/start', methods=['POST'])
 def register_start():
+    # Arm registration mode on hardware by publishing pending student details.
     global pending_registration
     data = request.get_json()
     if not data or 'student_id' not in data or 'name' not in data:
@@ -166,10 +179,12 @@ def register_start():
 
 @app.route('/register/pending', methods=['GET'])
 def register_pending():
+    # Read current in-memory registration request.
     return jsonify(pending_registration)
 
 @app.route('/register', methods=['POST'])
 def register():
+    # Finalize UID-to-student registration and clear pending state.
     global pending_registration
     data = request.get_json()
     if not data or 'uid' not in data or 'student_id' not in data or 'name' not in data:
@@ -189,6 +204,7 @@ def register():
 
 @app.route('/lookup', methods=['GET'])
 def lookup():
+    # Resolve RFID UID to student profile so firmware can check deliveries.
     uid = request.args.get('uid')
     
     if uid is None:
@@ -206,4 +222,5 @@ def lookup():
     return jsonify({"student_id": student_id, "name": name})
 
 if __name__ == '__main__':
+    # Run Flask app for local API/dashboard hosting.
     app.run(debug=False)
